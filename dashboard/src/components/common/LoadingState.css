@@ -1,0 +1,20 @@
+.gxa-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  color: var(--text-muted);
+}
+
+.loading-spinner {
+  color: var(--primary);
+}
+
+.loading-message {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+}

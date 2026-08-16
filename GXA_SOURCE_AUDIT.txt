@@ -1,0 +1,10 @@
+Modified production source files:
+dashboard/src/pages/Chats.css
+dashboard/src/components/chats/ChatComposer.tsx
+dashboard/src/i18n/locales/en.json
+docker-compose.yml
+GXA_INSTALL_AND_RUN.ps1
+e1585d32bdf914221c441c39961245aa23940c8ee984bfd1470373ab4c38fac5  dashboard/src/pages/Chats.css
+2ee1c17d1022723f1d80d798e12ccf055764971d1a4ffe9cd5ea7e281fc7123d  dashboard/src/components/chats/ChatComposer.tsx
+eef34dcc4addaef31c74482c3ac5164720b1c7f78433274efdd9c830a66b5f75  dashboard/src/i18n/locales/en.json
+e7b4c09873b1388de41e40dde0ddf1b4ea3c65c02cb406c5d6a7bb3756b77947  docker-compose.yml

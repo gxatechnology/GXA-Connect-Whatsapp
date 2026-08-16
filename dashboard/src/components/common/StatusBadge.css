@@ -1,0 +1,196 @@
+.gxa-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.gxa-status-badge.size-sm {
+  padding: 0.175rem 0.45rem;
+  font-size: 0.6875rem;
+  gap: 0.25rem;
+}
+
+.gxa-status-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gxa-status-badge.size-sm .badge-dot {
+  width: 5px;
+  height: 5px;
+}
+
+/* Success / Connected / Ready / Completed / Active */
+.gxa-status-badge.connected,
+.gxa-status-badge.ready,
+.gxa-status-badge.completed,
+.gxa-status-badge.active,
+.gxa-status-badge.success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+.gxa-status-badge.connected .badge-dot,
+.gxa-status-badge.ready .badge-dot,
+.gxa-status-badge.completed .badge-dot,
+.gxa-status-badge.active .badge-dot,
+.gxa-status-badge.success .badge-dot {
+  background: #16a34a;
+}
+
+/* Primary / Info / Running / Processing / QR Ready */
+.gxa-status-badge.running,
+.gxa-status-badge.processing,
+.gxa-status-badge.qr_ready,
+.gxa-status-badge.authenticating,
+.gxa-status-badge.info {
+  background: rgba(11, 77, 187, 0.12);
+  color: #0b4dbb;
+  border-color: rgba(11, 77, 187, 0.25);
+}
+.gxa-status-badge.running .badge-dot,
+.gxa-status-badge.processing .badge-dot,
+.gxa-status-badge.qr_ready .badge-dot,
+.gxa-status-badge.authenticating .badge-dot,
+.gxa-status-badge.info .badge-dot {
+  background: #0b4dbb;
+}
+
+/* Warning / Initializing / Connecting / Paused / Action Required / Scheduled */
+.gxa-status-badge.initializing,
+.gxa-status-badge.connecting,
+.gxa-status-badge.paused,
+.gxa-status-badge.scheduled,
+.gxa-status-badge.queued,
+.gxa-status-badge.action_required,
+.gxa-status-badge.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.gxa-status-badge.initializing .badge-dot,
+.gxa-status-badge.connecting .badge-dot,
+.gxa-status-badge.paused .badge-dot,
+.gxa-status-badge.scheduled .badge-dot,
+.gxa-status-badge.queued .badge-dot,
+.gxa-status-badge.action_required .badge-dot,
+.gxa-status-badge.warning .badge-dot {
+  background: #d97706;
+}
+
+/* Error / Disconnected / Failed / Revoked / Cancelled */
+.gxa-status-badge.disconnected,
+.gxa-status-badge.failed,
+.gxa-status-badge.error,
+.gxa-status-badge.revoked,
+.gxa-status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.gxa-status-badge.disconnected .badge-dot,
+.gxa-status-badge.failed .badge-dot,
+.gxa-status-badge.error .badge-dot,
+.gxa-status-badge.revoked .badge-dot,
+.gxa-status-badge.cancelled .badge-dot {
+  background: #dc2626;
+}
+
+/* Neutral / Idle / Draft / Inactive */
+.gxa-status-badge.idle,
+.gxa-status-badge.draft,
+.gxa-status-badge.inactive,
+.gxa-status-badge.created {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.gxa-status-badge.idle .badge-dot,
+.gxa-status-badge.draft .badge-dot,
+.gxa-status-badge.inactive .badge-dot,
+.gxa-status-badge.created .badge-dot {
+  background: var(--text-muted);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .gxa-status-badge.connected,
+[data-theme='dark'] .gxa-status-badge.ready,
+[data-theme='dark'] .gxa-status-badge.completed,
+[data-theme='dark'] .gxa-status-badge.active,
+[data-theme='dark'] .gxa-status-badge.success {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+[data-theme='dark'] .gxa-status-badge.connected .badge-dot,
+[data-theme='dark'] .gxa-status-badge.ready .badge-dot,
+[data-theme='dark'] .gxa-status-badge.completed .badge-dot,
+[data-theme='dark'] .gxa-status-badge.active .badge-dot,
+[data-theme='dark'] .gxa-status-badge.success .badge-dot {
+  background: #4ade80;
+}
+
+[data-theme='dark'] .gxa-status-badge.running,
+[data-theme='dark'] .gxa-status-badge.processing,
+[data-theme='dark'] .gxa-status-badge.qr_ready,
+[data-theme='dark'] .gxa-status-badge.authenticating,
+[data-theme='dark'] .gxa-status-badge.info {
+  background: rgba(79, 140, 255, 0.18);
+  color: #93c5fd;
+  border-color: rgba(79, 140, 255, 0.35);
+}
+[data-theme='dark'] .gxa-status-badge.running .badge-dot,
+[data-theme='dark'] .gxa-status-badge.processing .badge-dot,
+[data-theme='dark'] .gxa-status-badge.qr_ready .badge-dot,
+[data-theme='dark'] .gxa-status-badge.authenticating .badge-dot,
+[data-theme='dark'] .gxa-status-badge.info .badge-dot {
+  background: #93c5fd;
+}
+
+[data-theme='dark'] .gxa-status-badge.initializing,
+[data-theme='dark'] .gxa-status-badge.connecting,
+[data-theme='dark'] .gxa-status-badge.paused,
+[data-theme='dark'] .gxa-status-badge.scheduled,
+[data-theme='dark'] .gxa-status-badge.queued,
+[data-theme='dark'] .gxa-status-badge.action_required,
+[data-theme='dark'] .gxa-status-badge.warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+[data-theme='dark'] .gxa-status-badge.initializing .badge-dot,
+[data-theme='dark'] .gxa-status-badge.connecting .badge-dot,
+[data-theme='dark'] .gxa-status-badge.paused .badge-dot,
+[data-theme='dark'] .gxa-status-badge.scheduled .badge-dot,
+[data-theme='dark'] .gxa-status-badge.queued .badge-dot,
+[data-theme='dark'] .gxa-status-badge.action_required .badge-dot,
+[data-theme='dark'] .gxa-status-badge.warning .badge-dot {
+  background: #fbbf24;
+}
+
+[data-theme='dark'] .gxa-status-badge.disconnected,
+[data-theme='dark'] .gxa-status-badge.failed,
+[data-theme='dark'] .gxa-status-badge.error,
+[data-theme='dark'] .gxa-status-badge.revoked,
+[data-theme='dark'] .gxa-status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+[data-theme='dark'] .gxa-status-badge.disconnected .badge-dot,
+[data-theme='dark'] .gxa-status-badge.failed .badge-dot,
+[data-theme='dark'] .gxa-status-badge.error .badge-dot,
+[data-theme='dark'] .gxa-status-badge.revoked .badge-dot,
+[data-theme='dark'] .gxa-status-badge.cancelled .badge-dot {
+  background: #f87171;
+}

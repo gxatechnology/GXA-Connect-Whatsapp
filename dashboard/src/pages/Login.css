@@ -1,0 +1,322 @@
+.login-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  padding: 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.login-container .login-card {
+  background: var(--bg-white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 3rem;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.login-container .login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-container .logo-icon {
+  width: 127px;
+  height: 127px;
+  object-fit: contain;
+}
+
+.login-container .version-info {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.login-container .login-language {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  background: var(--bg-white);
+}
+
+.login-container .login-language svg {
+  flex-shrink: 0;
+}
+
+.login-container .login-language .custom-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.login-container .login-language:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+.login-container .login-form {
+  text-align: left;
+}
+
+.login-container [dir='rtl'] .login-form {
+  text-align: right;
+}
+
+.login-container .input-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-container .input-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.login-container .input-wrapper {
+  position: relative;
+}
+
+.login-container .input-wrapper input {
+  width: 100%;
+  padding: 0.75rem 3rem 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-white);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.login-container .input-wrapper input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+.login-container .input-wrapper input.error {
+  border-color: var(--error);
+}
+
+.login-container .toggle-visibility {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.login-container .toggle-visibility:hover {
+  color: var(--text-secondary);
+}
+
+.login-container .error-message {
+  display: block;
+  color: var(--error);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.login-container .connect-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-container .connect-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.login-container .connect-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-container .login-help {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.login-container .login-help a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-container .login-help a:hover {
+  text-decoration: underline;
+}
+
+.login-container .login-footer {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.login-container .login-footer .github-link {
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.login-container .login-footer .github-link:hover {
+  color: var(--primary);
+}
+
+.login-container .login-footer a {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.login-container .login-footer a:hover {
+  color: var(--text-secondary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-container .login-card {
+    padding: 2rem 1.5rem;
+    border-radius: 10px;
+  }
+
+  .login-container .logo-icon {
+    width: 80px;
+    height: 80px;
+  }
+
+  .login-container .input-wrapper input {
+    padding: 0.625rem 2.5rem 0.625rem 0.875rem;
+    font-size: 0.9375rem;
+  }
+
+  .login-container .connect-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .login-container .login-help {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ==================== GXA branded sign-in ==================== */
+.login-container {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(242,193,78,.18), transparent 22rem),
+    radial-gradient(circle at 82% 82%, rgba(31,105,214,.35), transparent 30rem),
+    linear-gradient(135deg, #06152f 0%, #082b6b 54%, #0b4dbb 100%);
+}
+.login-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+}
+.login-container .login-card {
+  position: relative;
+  max-width: 460px;
+  border-radius: 22px;
+  padding: 2.5rem;
+  border: 1px solid rgba(255,255,255,.58);
+  box-shadow: 0 28px 80px rgba(0,0,0,.28);
+}
+.login-container .login-card::before {
+  content: 'WHATSAPP AUTOMATION GATEWAY';
+  display: block;
+  color: var(--primary);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .18em;
+  margin-bottom: 1.25rem;
+}
+.login-container .logo-icon { width: 220px; height: 64px; color: #10213f; }
+.login-container .login-logo { margin-bottom: 1.25rem; }
+.login-container .connect-btn {
+  background: linear-gradient(135deg, #0b4dbb, #082b6b);
+  box-shadow: 0 12px 24px rgba(11,77,187,.22);
+}
+.login-container .connect-btn:hover:not(:disabled) { background: linear-gradient(135deg, #155ecf, #0b3d91); transform: translateY(-1px); }
+.login-container .login-language:focus-within, .login-container .input-wrapper input:focus { box-shadow: 0 0 0 3px rgba(11,77,187,.12); }
+.login-container .login-footer { position: relative; color: rgba(255,255,255,.7); }
+.login-container .login-footer a, .login-container .login-footer .github-link { color: rgba(255,255,255,.78); }
+
+/* ==================== GXA Connect final brand lockup ==================== */
+.login-container .login-card::before { content: none !important; display: none !important; }
+.login-container .login-logo { gap: .35rem; margin-bottom: 1.35rem; }
+.login-container .login-brand-title {
+  color: #0B4DBB;
+  font-size: .82rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .20em;
+  margin-bottom: .2rem;
+}
+.login-container .login-brand-subtitle {
+  color: #64748b;
+  font-size: .72rem;
+  line-height: 1.35;
+  font-weight: 650;
+  letter-spacing: .035em;
+  margin-bottom: .55rem;
+}
+.login-container .logo-icon {
+  width: 150px !important;
+  height: 150px !important;
+  object-fit: contain;
+  border-radius: 18px;
+}
+.login-container .login-help { display: none !important; }
+.login-container .login-footer {
+  margin-top: 1.2rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.82);
+}
+@media (max-width: 480px) {
+  .login-container .logo-icon { width: 112px !important; height: 112px !important; }
+  .login-container .login-brand-title { font-size: .75rem; }
+  .login-container .login-brand-subtitle { font-size: .68rem; }
+}

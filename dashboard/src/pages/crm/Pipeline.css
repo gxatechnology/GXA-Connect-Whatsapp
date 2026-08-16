@@ -1,0 +1,191 @@
+.crm-pipeline-page {
+  padding: 1.5rem 2rem;
+  max-width: 1800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: calc(100vh - 80px);
+}
+
+.crm-pipeline-page .pipeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.crm-pipeline-page .pipeline-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.crm-pipeline-page .pipeline-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin: 0;
+}
+
+.crm-pipeline-page .pipeline-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  flex: 1;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+@media (max-width: 1400px) {
+  .crm-pipeline-page .pipeline-board {
+    grid-template-columns: repeat(6, 280px);
+  }
+}
+
+.crm-pipeline-page .stage-column {
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.crm-pipeline-page .column-header {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg, #ffffff);
+}
+
+.crm-pipeline-page .column-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-pipeline-page .column-count {
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  background: var(--bg-secondary, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.crm-pipeline-page .column-cards {
+  padding: 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crm-pipeline-page .lead-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.375rem;
+  padding: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-pipeline-page .lead-card:hover {
+  border-color: var(--gxa-blue, #0B4DBB);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.crm-pipeline-page .card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.crm-pipeline-page .card-name {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-primary, #0f172a);
+  margin: 0;
+}
+
+.crm-pipeline-page .card-company {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+}
+
+.crm-pipeline-page .card-phone {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crm-pipeline-page .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.crm-pipeline-page .card-tag-pill {
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.crm-pipeline-page .card-footer {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.crm-pipeline-page .card-agent {
+  color: var(--text-secondary, #64748b);
+  font-weight: 500;
+}
+
+.crm-pipeline-page .card-stage-mover {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.crm-pipeline-page .mover-select {
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  font-size: 0.6875rem;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #0f172a);
+  outline: none;
+}
+
+.crm-pipeline-page .empty-column-card {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.8125rem;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: 0.375rem;
+  background: rgba(248, 250, 252, 0.5);
+}

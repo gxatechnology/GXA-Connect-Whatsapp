@@ -53,6 +53,30 @@ describe('resolveStorageRoot', () => {
       /STORAGE_LOCAL_PATH/,
     );
   });
+
+  describe('Serverless Storage Root Resolution', () => {
+    it('resolves to os.tmpdir()/media when in serverless mode and configured is unwritable', () => {
+      const expectedTmp = path.join(os.tmpdir(), 'media');
+      const resolved = resolveStorageRoot({
+        configured: './data/media',
+        isServerless: true,
+        isWritable: (p: string): boolean => p === expectedTmp,
+      });
+
+      expect(resolved).toBe(expectedTmp);
+    });
+
+    it('defaults to os.tmpdir()/media when in serverless mode and nothing is configured', () => {
+      const expectedTmp = path.join(os.tmpdir(), 'media');
+      const resolved = resolveStorageRoot({
+        configured: undefined,
+        isServerless: true,
+        isWritable: (p: string): boolean => p === expectedTmp,
+      });
+
+      expect(resolved).toBe(expectedTmp);
+    });
+  });
 });
 
 describe('isStorageRootWritable', () => {
@@ -74,8 +98,8 @@ describe('isStorageRootWritable', () => {
   });
 
   it('reports an EXISTING but unwritable root as not writable (the #1065 case existsSync misses)', () => {
-    // Running as root bypasses permission bits entirely, so the negative case is unprovable there.
-    if (typeof process.getuid === 'function' && process.getuid() === 0) return;
+    // Running as root or on Windows (where POSIX chmod bits don't restrict directory writes) bypasses permission bits.
+    if (process.platform === 'win32' || (typeof process.getuid === 'function' && process.getuid() === 0)) return;
 
     const root = path.join(tmp, 'locked');
     fs.mkdirSync(root);

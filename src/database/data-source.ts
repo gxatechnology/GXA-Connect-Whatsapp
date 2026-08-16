@@ -62,23 +62,30 @@ const sqliteDataSourceOptions: DataSourceOptions = {
 //
 // Exported as a builder so the schema/search_path logic is unit-testable without mutating process.env
 // or reloading the module. The default `postgresDataSourceOptions` reads the loaded env at module eval.
+import { parsePostgresUrl, resolveDatabaseType } from './database-url.util';
+
 export function buildPostgresDataSourceOptions(env: NodeJS.ProcessEnv = process.env): DataSourceOptions {
   const schema = env.POSTGRES_SCHEMA || 'public';
   const useCustomSearchPath = schema !== 'public';
+  const dataUrl = env.DATA_DATABASE_URL || env.DATABASE_URL;
+  const parsedUrl = dataUrl ? parsePostgresUrl(dataUrl) : null;
+
   return {
     type: 'postgres',
+    ...(dataUrl ? { url: dataUrl } : {}),
     schema,
-    host: env.DATABASE_HOST || 'localhost',
-    port: parseInt(env.DATABASE_PORT || '5432', 10),
-    username: env.DATABASE_USERNAME,
-    password: env.DATABASE_PASSWORD,
-    database: env.DATABASE_NAME || 'openwa',
+    host: parsedUrl?.host || env.DATABASE_HOST || 'localhost',
+    port: parsedUrl?.port || parseInt(env.DATABASE_PORT || '5432', 10),
+    username: parsedUrl?.username || env.DATABASE_USERNAME,
+    password: parsedUrl?.password || env.DATABASE_PASSWORD,
+    database: parsedUrl?.database || env.DATABASE_NAME || 'openwa',
     entities: dataEntities,
     migrations: dataMigrations,
+    migrationsTableName: 'migrations',
     synchronize: false, // Never auto-sync in production
     logging: env.DATABASE_LOGGING === 'true',
     ssl:
-      env.DATABASE_SSL === 'true'
+      env.DATABASE_SSL === 'true' || (parsedUrl?.ssl !== undefined ? !!parsedUrl.ssl : false)
         ? {
             rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
           }
@@ -97,5 +104,6 @@ export function buildPostgresDataSourceOptions(env: NodeJS.ProcessEnv = process.
 
 export const postgresDataSourceOptions: DataSourceOptions = buildPostgresDataSourceOptions();
 
-// Exactly ONE DataSource instance is exported (the default), selected by DATABASE_TYPE.
-export default new DataSource(dbType === 'postgres' ? postgresDataSourceOptions : sqliteDataSourceOptions);
+const effectiveDbType = resolveDatabaseType(process.env);
+// Exactly ONE DataSource instance is exported (the default), selected by DATABASE_TYPE / DATABASE_URL.
+export default new DataSource(effectiveDbType === 'postgres' ? postgresDataSourceOptions : sqliteDataSourceOptions);

@@ -117,6 +117,9 @@ const FORBIDDEN_PROD_SECRETS = new Set([
   'root',
   'test',
   'demo',
+  'gxa_session_secret_default_2026',
+  'default_secret',
+  'session_secret',
 ]);
 
 /**
@@ -160,6 +163,8 @@ export interface SecretCheckEnv {
   allowDevApiKey?: string;
   /** REDIS_PASSWORD — optional; passwordless private-network Redis is supported, so only a known placeholder is rejected. */
   redisPassword?: string;
+  /** AUTH_SESSION_SECRET — JWT/session signing secret. Must be >= 32 chars in production. */
+  authSessionSecret?: string;
 }
 
 /**
@@ -203,11 +208,18 @@ export function assertNoDefaultSecretsInProduction(env: SecretCheckEnv): void {
   if (env.allowDevApiKey === 'true') {
     problems.push('ALLOW_DEV_API_KEY (seeds the public dev-admin-key)');
   }
+  // In production, AUTH_SESSION_SECRET must not be weak or under 32 characters
+  if (env.authSessionSecret !== undefined) {
+    const sessionSecret = env.authSessionSecret.trim();
+    if (!sessionSecret || isWeak(sessionSecret) || sessionSecret.length < 32) {
+      problems.push('AUTH_SESSION_SECRET (must be at least 32 characters and cryptographically strong in production)');
+    }
+  }
 
   if (problems.length > 0) {
     throw new Error(
       `Refusing to start in production: insecure or default value for ${problems.join(', ')}. ` +
-        'Set strong, unique secrets (see .env.example).',
+        'Set strong, unique secrets (see .env.production.example).',
     );
   }
 }

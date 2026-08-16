@@ -70,6 +70,53 @@ describe('loadEnvironment', () => {
     expect(process.env.REDIS_HOST).toBe('host-from-process-env');
     expect(workerConnectionOptions().host).toBe('host-from-process-env');
   });
+
+  describe('Serverless & Vercel runtime environment safety', () => {
+    it('NEVER creates data/ or data/.env.generated when VERCEL=1 is set', () => {
+      process.env.VERCEL = '1';
+      delete process.env.RUNTIME_MODE;
+      const cwd = makeTempCwd({});
+
+      runLoader();
+
+      expect(process.env.RUNTIME_MODE).toBe('serverless');
+      expect(fs.existsSync(path.join(cwd, 'data'))).toBe(false);
+      expect(fs.existsSync(path.join(cwd, 'data', '.env.generated'))).toBe(false);
+    });
+
+    it('NEVER creates data/ when RUNTIME_MODE=serverless is set', () => {
+      process.env.RUNTIME_MODE = 'serverless';
+      const cwd = makeTempCwd({});
+
+      runLoader();
+
+      expect(fs.existsSync(path.join(cwd, 'data'))).toBe(false);
+    });
+
+    it('NEVER creates data/ when AWS_LAMBDA_FUNCTION_NAME is set', () => {
+      process.env.AWS_LAMBDA_FUNCTION_NAME = 'my-lambda';
+      const cwd = makeTempCwd({});
+
+      runLoader();
+
+      expect(process.env.RUNTIME_MODE).toBe('serverless');
+      expect(fs.existsSync(path.join(cwd, 'data'))).toBe(false);
+    });
+
+    it('retains local data directory and .env.generated creation in standalone mode', () => {
+      delete process.env.VERCEL;
+      delete process.env.RUNTIME_MODE;
+      delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+      delete process.env.LAMBDA_TASK_ROOT;
+      delete process.env.NETLIFY;
+      const cwd = makeTempCwd({});
+
+      runLoader();
+
+      expect(fs.existsSync(path.join(cwd, 'data'))).toBe(true);
+      expect(fs.existsSync(path.join(cwd, 'data', '.env.generated'))).toBe(true);
+    });
+  });
 });
 
 describe('main.ts bootstrap order', () => {

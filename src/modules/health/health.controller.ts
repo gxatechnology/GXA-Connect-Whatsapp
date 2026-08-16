@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { Public } from '../auth/decorators/auth.decorators';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ShutdownService } from '../../common/services/shutdown.service';
+import { getRuntimeCapability, RuntimeCapability } from '../../config/runtime-mode';
 
 interface DependencyStatus {
   status: 'up' | 'down';
@@ -12,6 +13,12 @@ interface DependencyStatus {
 
 interface HealthCheckResult {
   status: 'ok' | 'error';
+  runtime: {
+    mode: string;
+    isServerless: boolean;
+    canRunWhatsAppSockets: boolean;
+    canRunCampaignWorker: boolean;
+  };
   details: Record<string, DependencyStatus>;
 }
 
@@ -37,11 +44,28 @@ export class HealthController {
   @Get()
   @ApiOperation({ summary: 'Basic health check' })
   @ApiResponse({ status: 200, description: 'Application is healthy' })
-  check(): { status: string; timestamp: string; version: string } {
+  check(): {
+    status: string;
+    timestamp: string;
+    version: string;
+    runtime: {
+      mode: string;
+      isServerless: boolean;
+      canRunWhatsAppSockets: boolean;
+      canRunCampaignWorker: boolean;
+    };
+  } {
+    const cap = getRuntimeCapability();
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
       version: APP_VERSION,
+      runtime: {
+        mode: cap.mode,
+        isServerless: cap.isServerless,
+        canRunWhatsAppSockets: cap.canRunWhatsAppSockets,
+        canRunCampaignWorker: cap.canRunCampaignWorker,
+      },
     };
   }
 
@@ -75,12 +99,31 @@ export class HealthController {
       dataDatabase: { status: data },
     };
 
+    const cap = getRuntimeCapability();
     if (main === 'down' || data === 'down') {
       // 503 so orchestrators/LBs stop routing traffic to a node with a dead DB.
-      throw new ServiceUnavailableException({ status: 'error', details });
+      throw new ServiceUnavailableException({
+        status: 'error',
+        runtime: {
+          mode: cap.mode,
+          isServerless: cap.isServerless,
+          canRunWhatsAppSockets: cap.canRunWhatsAppSockets,
+          canRunCampaignWorker: cap.canRunCampaignWorker,
+        },
+        details,
+      });
     }
 
-    return { status: 'ok', details };
+    return {
+      status: 'ok',
+      runtime: {
+        mode: cap.mode,
+        isServerless: cap.isServerless,
+        canRunWhatsAppSockets: cap.canRunWhatsAppSockets,
+        canRunCampaignWorker: cap.canRunCampaignWorker,
+      },
+      details,
+    };
   }
 
   private async probeDatabase(dataSource: DataSource): Promise<'up' | 'down'> {

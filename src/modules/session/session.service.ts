@@ -25,6 +25,7 @@ import { SessionOwnershipService } from './session-ownership.service';
 import { paginate, ListOptions, resolveListWindow } from '../../common/utils/paginate';
 import { isUniqueConstraintError } from '../../common/utils/unique-constraint.util';
 import { resolveFeatureFlags } from '../../config/feature-flags';
+import { getRuntimeCapability } from '../../config/runtime-mode';
 import { IWhatsAppEngine, ChatSummary, ChatState } from '../../engine/interfaces/whatsapp-engine.interface';
 import { createLogger } from '../../common/services/logger.service';
 import { HookManager } from '../../core/hooks';
@@ -120,6 +121,12 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
   }
 
   async onApplicationBootstrap(): Promise<void> {
+    const runtimeCap = getRuntimeCapability();
+    if (runtimeCap.isServerless || !runtimeCap.canRunWhatsAppSockets) {
+      this.logger.log('Serverless runtime mode: background engine socket auto-start and liveness watchdog disabled.');
+      return;
+    }
+
     // Start the liveness watchdog FIRST: it must run even when auto-start is disabled (sessions can
     // be started via the API at any time), so it can't sit behind the auto-start early-return below.
     // The watchdog owns the probe cadence and failure counting; a session it proves dead comes
@@ -304,6 +311,14 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
   }
 
   async start(id: string): Promise<Session> {
+    const runtimeCap = getRuntimeCapability();
+    if (runtimeCap.isServerless || !runtimeCap.canRunWhatsAppSockets) {
+      throw new BadRequestException(
+        'WhatsApp engine socket execution is not supported in serverless runtime mode. ' +
+          'A dedicated background worker or standalone instance is required to connect WhatsApp accounts.',
+      );
+    }
+
     // Claimed before the engine is launched, never after: launching first and discovering the
     // session belongs elsewhere would already have opened a second connection to the account.
     if (this.ownership && !(await this.ownership.claim(id))) {

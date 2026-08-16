@@ -71,10 +71,34 @@ export function validateEnv(config: EnvConfig): EnvConfig {
   checkEnum('ENGINE_TYPE', ['whatsapp-web.js', 'baileys']);
   checkEnum('STORAGE_TYPE', ['local', 's3']);
 
-  if (dbType === 'postgres') {
-    for (const key of ['DATABASE_HOST', 'DATABASE_USERNAME', 'DATABASE_PASSWORD']) {
-      if (!str(key)) {
-        errors.push(`${key} is required when DATABASE_TYPE=postgres`);
+  const isProd = config['NODE_ENV'] === 'production';
+  const hasDatabaseUrl = !!(str('DATABASE_URL') || str('DATA_DATABASE_URL') || str('MAIN_DATABASE_URL'));
+
+  if (isProd && dbType !== 'postgres' && !hasDatabaseUrl) {
+    errors.push(
+      'Production environment requires PostgreSQL. Set DATABASE_TYPE=postgres and provide DATABASE_URL (or DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD). SQLite is not permitted in production.',
+    );
+  }
+
+  if (isProd && config['MAIN_DATABASE_SYNCHRONIZE'] === 'true') {
+    errors.push('MAIN_DATABASE_SYNCHRONIZE=true is not allowed in production. Schema must be managed via migrations.');
+  }
+
+  if (isProd) {
+    const sessionSecret = str('AUTH_SESSION_SECRET') || str('SESSION_SECRET');
+    if (!sessionSecret || sessionSecret.length < 32) {
+      errors.push(
+        'AUTH_SESSION_SECRET is required and must be at least 32 characters long in production.',
+      );
+    }
+  }
+
+  if (dbType === 'postgres' || hasDatabaseUrl) {
+    if (!hasDatabaseUrl) {
+      for (const key of ['DATABASE_HOST', 'DATABASE_USERNAME', 'DATABASE_PASSWORD']) {
+        if (!str(key)) {
+          errors.push(`${key} is required when DATABASE_TYPE=postgres and DATABASE_URL is unset`);
+        }
       }
     }
     // The Postgres data connection always runs migrations (app.module.ts hardcodes migrationsRun=true).

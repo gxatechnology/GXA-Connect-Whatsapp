@@ -95,9 +95,13 @@ export class StorageService implements OnModuleDestroy {
       }
     }
 
-    // Ensure local directory exists
+    // Ensure local directory exists (safe against read-only root filesystems)
     if (!fs.existsSync(this.localPath)) {
-      fs.mkdirSync(this.localPath, { recursive: true });
+      try {
+        fs.mkdirSync(this.localPath, { recursive: true });
+      } catch (err) {
+        this.logger.warn(`Could not create local storage directory '${this.localPath}': ${String(err)}`);
+      }
     }
   }
 

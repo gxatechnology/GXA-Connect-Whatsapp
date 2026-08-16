@@ -1,49 +1,73 @@
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import { loadCliEnv } from './load-cli-env';
 import { sqliteDataMainPathCollision } from '../config/env.validation';
+import { parsePostgresUrl, resolveDatabaseType } from './database-url.util';
 
 // Load environment variables with the app's precedence (mirrors data-source.ts / main.ts).
 loadCliEnv();
 
-// Same guard as data-source.ts: the TypeORM CLI never runs ConfigModule's validate(), so the
-// SQLite main/data file collision check from env.validation is re-applied here — a shared broken
-// env (DATABASE_NAME resolving to the main file) must refuse BOTH migration entry points, not just
-// the data one.
-const sqlitePathCollision = sqliteDataMainPathCollision(process.env);
-if (sqlitePathCollision) {
-  throw new Error(sqlitePathCollision);
+const effectiveDbType = resolveDatabaseType(process.env);
+
+// Same guard as data-source.ts: collision check only applies when using SQLite
+if (effectiveDbType === 'sqlite') {
+  const sqlitePathCollision = sqliteDataMainPathCollision(process.env);
+  if (sqlitePathCollision) {
+    throw new Error(sqlitePathCollision);
+  }
 }
 
-/**
- * Standalone TypeORM CLI DataSource for the MAIN connection (auth + audit).
- *
- * The app runs the main connection as a separate, ALWAYS-SQLite connection (app.module.ts), distinct
- * from the pluggable data connection. The default data-source.ts CLI only manages the data
- * connection's migrations, so without this the CLI could not run/generate the main-owned migrations
- * (migrations-main) — which matters the moment boot auto-migration is turned off
- * (MAIN_DATABASE_SYNCHRONIZE=false), where the schema must be managed via the CLI instead.
- *
- * Mirrors the runtime main connection exactly: SQLite at ./data/main.sqlite, auth/audit entities,
- * migrations-main. synchronize is always false here — the CLI manages schema via migrations.
- *
- * Usage: `npm run migration:run:main` (dev) / `migration:run:main:prod` (compiled).
- */
-const mainDataSource = new DataSource({
-  type: 'better-sqlite3',
-  // Mirrors the runtime main path (configuration.ts) — MAIN_DATABASE_NAME overrides the default
-  // ./data/main.sqlite (e.g. e2e points it at a temp file), so the CLI and the app never target
-  // different main databases.
-  database: process.env.MAIN_DATABASE_NAME || './data/main.sqlite',
-  entities: [
-    __dirname + '/../modules/auth/**/*.entity{.ts,.js}',
-    __dirname + '/../modules/audit/**/*.entity{.ts,.js}',
-    __dirname + '/../modules/user/**/*.entity{.ts,.js}',
-    __dirname + '/../modules/organization/**/*.entity{.ts,.js}',
-    __dirname + '/../modules/plan/**/*.entity{.ts,.js}',
-  ],
-  migrations: [__dirname + '/migrations-main/*{.ts,.js}'],
+const mainEntities = [
+  __dirname + '/../modules/auth/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/audit/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/user/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/organization/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/plan/**/*.entity{.ts,.js}',
+];
+const mainMigrations = [__dirname + '/migrations-main/*{.ts,.js}'];
+
+const mainUrl = process.env.MAIN_DATABASE_URL || process.env.DATABASE_URL;
+const parsedUrl = mainUrl ? parsePostgresUrl(mainUrl) : null;
+const schema = process.env.MAIN_POSTGRES_SCHEMA || process.env.POSTGRES_SCHEMA || 'public';
+const useCustomSearchPath = schema && schema !== 'public';
+
+const postgresMainOptions: DataSourceOptions = {
+  type: 'postgres',
+  ...(mainUrl ? { url: mainUrl } : {}),
+  schema,
+  host: parsedUrl?.host || process.env.DATABASE_HOST || 'localhost',
+  port: parsedUrl?.port || parseInt(process.env.DATABASE_PORT || '5432', 10),
+  username: parsedUrl?.username || process.env.DATABASE_USERNAME,
+  password: parsedUrl?.password || process.env.DATABASE_PASSWORD,
+  database: parsedUrl?.database || process.env.DATABASE_NAME || 'openwa',
+  entities: mainEntities,
+  migrations: mainMigrations,
+  migrationsTableName: 'migrations_main',
   synchronize: false,
   logging: process.env.DATABASE_LOGGING === 'true',
-});
+  ssl:
+    process.env.DATABASE_SSL === 'true' || (parsedUrl?.ssl !== undefined ? !!parsedUrl.ssl : false)
+      ? {
+          rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+        }
+      : false,
+  extra: {
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    ...(useCustomSearchPath ? { options: `-c search_path=${schema},public` } : {}),
+  },
+};
+
+const sqliteMainOptions: DataSourceOptions = {
+  type: 'better-sqlite3',
+  database: process.env.MAIN_DATABASE_NAME || './data/main.sqlite',
+  entities: mainEntities,
+  migrations: mainMigrations,
+  migrationsTableName: 'migrations_main',
+  synchronize: false,
+  logging: process.env.DATABASE_LOGGING === 'true',
+};
+
+const mainDataSource = new DataSource(effectiveDbType === 'postgres' ? postgresMainOptions : sqliteMainOptions);
 
 export default mainDataSource;

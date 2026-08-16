@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build && npm --prefix dashboard run build",
+  "outputDirectory": "dashboard/dist",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

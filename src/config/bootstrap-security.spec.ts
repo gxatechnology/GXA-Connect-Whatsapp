@@ -295,11 +295,22 @@ describe('assertNoDefaultSecretsInProduction', () => {
     ).not.toThrow();
   });
 
-  it('allows the default sqlite + local-storage prod setup (no secrets needed)', () => {
+  it('refuses prod with a short or weak AUTH_SESSION_SECRET', () => {
     expect(() =>
-      assertNoDefaultSecretsInProduction({ nodeEnv: 'production', databaseType: 'sqlite', storageType: 'local' }),
-    ).not.toThrow();
+      assertNoDefaultSecretsInProduction({
+        nodeEnv: 'production',
+        authSessionSecret: 'short',
+      }),
+    ).toThrow(/AUTH_SESSION_SECRET/);
+    expect(() =>
+      assertNoDefaultSecretsInProduction({
+        nodeEnv: 'production',
+        authSessionSecret: 'gxa_session_secret_default_2026',
+      }),
+    ).toThrow(/AUTH_SESSION_SECRET/);
   });
+
+  const validProdSecret = 'super-strong-auth-session-secret-32-chars-long!';
 
   it('allows prod with strong, unique secrets', () => {
     expect(() =>
@@ -310,6 +321,7 @@ describe('assertNoDefaultSecretsInProduction', () => {
         storageType: 's3',
         s3AccessKey: 'AKIA-not-default-123',
         s3SecretKey: 'long-random-secret-value-098',
+        authSessionSecret: validProdSecret,
       }),
     ).not.toThrow();
   });

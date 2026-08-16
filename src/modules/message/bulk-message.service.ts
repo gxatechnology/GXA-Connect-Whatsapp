@@ -33,6 +33,7 @@ import { SsrfBlockedError, SSRF_BLOCKED_CLIENT_MESSAGE } from '../../common/secu
 import { renderTemplate } from '../../common/utils/template-render';
 import { IWhatsAppEngine, MessageResult } from '../../engine/interfaces/whatsapp-engine.interface';
 import { resolveNonNegativeIntEnv } from '../../config/configuration';
+import { getRuntimeCapability } from '../../config/runtime-mode';
 
 // Type definitions for bulk message content
 interface BulkMessageContent {
@@ -129,6 +130,12 @@ export class BulkMessageService implements OnApplicationBootstrap {
    * because the two cannot diverge: only the engine holder can send.
    */
   async onApplicationBootstrap(): Promise<void> {
+    const runtimeCap = getRuntimeCapability();
+    if (runtimeCap.isServerless || !runtimeCap.canRunCampaignWorker) {
+      this.logger.log('Serverless runtime mode: in-process campaign worker is disabled.');
+      return;
+    }
+
     const processing = await this.batchRepository.find({ where: { status: BatchStatus.PROCESSING } });
     const orphaned = await this.ownedByThisNode(processing);
     for (const batch of orphaned) {
@@ -267,7 +274,13 @@ export class BulkMessageService implements OnApplicationBootstrap {
           : ` (${dto.messages.length - messages.length} exact duplicate entr${dto.messages.length - messages.length === 1 ? 'y' : 'ies'} dropped)`),
     );
 
-    // Start processing asynchronously
+    const runtimeCap = getRuntimeCapability();
+    if (runtimeCap.isServerless || !runtimeCap.canRunCampaignWorker) {
+      this.logger.log(`Serverless runtime mode: batch ${batchId} saved in database as PENDING for worker execution.`);
+      return batch;
+    }
+
+    // Start processing asynchronously in worker/standalone runtime
     this.processBatch(batch.id, true).catch(err => {
       this.logger.error(`Batch ${batchId} processing error: ${String(err)}`);
     });

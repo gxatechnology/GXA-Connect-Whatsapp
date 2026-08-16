@@ -126,38 +126,77 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
       validate: validateEnv,
     }),
 
-    // Main Database (always SQLite - boot config)
+    // Main Database (dynamic: SQLite in local dev, PostgreSQL in prod/when configured)
     TypeOrmModule.forRootAsync({
       name: 'main',
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        // Default ON for zero-config first boot. When disabled
-        // (MAIN_DATABASE_SYNCHRONIZE=false), the main-owned migrations create the
-        // api_keys/audit_logs schema instead — never both at once.
+        const dbType = configService.get<'sqlite' | 'postgres'>('database.type', 'sqlite');
+        const baseEntities = [
+          __dirname + '/modules/auth/**/*.entity{.ts,.js}',
+          __dirname + '/modules/audit/**/*.entity{.ts,.js}',
+          __dirname + '/modules/user/**/*.entity{.ts,.js}',
+          __dirname + '/modules/organization/**/*.entity{.ts,.js}',
+          __dirname + '/modules/plan/**/*.entity{.ts,.js}',
+        ];
+        const migrations = [__dirname + '/database/migrations-main/*{.ts,.js}'];
+        const logging = configService.get<boolean>('database.logging', false);
+
+        if (dbType === 'postgres') {
+          const schema = configService.get<string>('database.schema', 'public');
+          const useCustomSearchPath = schema && schema !== 'public';
+          const mainUrl = configService.get<string>('database.url');
+          return {
+            name: 'main',
+            type: 'postgres' as const,
+            ...(mainUrl ? { url: mainUrl } : {}),
+            schema,
+            host: configService.get<string>('database.host'),
+            port: configService.get<number>('database.port'),
+            username: configService.get<string>('database.username'),
+            password: configService.get<string>('database.password'),
+            database: configService.get<string>('database.database', 'openwa'),
+            entities: baseEntities,
+            migrations,
+            migrationsTableName: 'migrations_main',
+            synchronize: configService.get<boolean>('database.synchronize', false),
+            migrationsRun: true,
+            logging,
+            retryAttempts: 10,
+            retryDelay: 3000,
+            ssl: configService.get<boolean>('database.ssl', false)
+              ? {
+                  rejectUnauthorized: configService.get<boolean>('database.sslRejectUnauthorized', true),
+                }
+              : false,
+            extra: {
+              max: 5,
+              statement_timeout: 30000,
+              idleTimeoutMillis: 30000,
+              connectionTimeoutMillis: 10000,
+              ...(useCustomSearchPath ? { options: `-c search_path=${schema},public` } : {}),
+            },
+          };
+        }
+
+        // SQLite main database
         const synchronize = configService.get<boolean>('database.synchronize', true);
         return {
           name: 'main',
           type: 'better-sqlite3' as const,
           database: configService.get<string>('database.database', './data/main.sqlite'),
-          entities: [
-            __dirname + '/modules/auth/**/*.entity{.ts,.js}',
-            __dirname + '/modules/audit/**/*.entity{.ts,.js}',
-            __dirname + '/modules/user/**/*.entity{.ts,.js}',
-            __dirname + '/modules/organization/**/*.entity{.ts,.js}',
-            __dirname + '/modules/plan/**/*.entity{.ts,.js}',
-          ],
-          // Dedicated migrations dir for the main connection only (must NOT run the
-          // data-connection migrations, which target session/webhook/message tables).
-          migrations: [__dirname + '/database/migrations-main/*{.ts,.js}'],
+          entities: baseEntities,
+          migrations,
+          migrationsTableName: 'migrations_main',
           synchronize,
           migrationsRun: !synchronize,
-          logging: configService.get<boolean>('database.logging', false),
+          logging,
         };
       },
     }),
 
-    // Data Storage Database (pluggable - user data)
+    // Data Storage Database (pluggable: SQLite, PostgreSQL, etc.)
     TypeOrmModule.forRootAsync({
       name: 'data',
       imports: [ConfigModule],
@@ -177,22 +216,19 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
             __dirname + '/modules/crm/**/*.entity{.ts,.js}',
           ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          migrationsTableName: 'migrations',
           logging: configService.get<boolean>('dataDatabase.logging', false),
         };
 
         if (dbType === 'postgres') {
-          // Schema selection: 'public' (default) is a no-op vs the historical behavior. A non-public
-          // schema additionally sets the session search_path via pg's startup `options` parameter so
-          // the project's RAW, unqualified migration SQL (CREATE TABLE "x"..., ALTER TABLE "y"...)
-          // resolves to the configured schema — TypeORM's `schema` option alone does NOT set
-          // search_path, so without this raw DDL would land in `public` while the migration ledger
-          // lands in the configured schema.
           const schema = configService.get<string>('dataDatabase.schema', 'public');
           const useCustomSearchPath = schema && schema !== 'public';
+          const dataUrl = configService.get<string>('dataDatabase.url');
           return {
             ...baseConfig,
             name: 'data',
             type: 'postgres' as const,
+            ...(dataUrl ? { url: dataUrl } : {}),
             schema,
             host: configService.get<string>('dataDatabase.host'),
             port: configService.get<number>('dataDatabase.port'),
@@ -213,24 +249,15 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
             retryDelay: 3000,
             extra: {
               max: configService.get<number>('dataDatabase.poolSize', 10),
-              // Runtime query/pool timeouts so a stuck query or saturated pool fails fast instead of
-              // hanging requests. statement_timeout bounds live runtime queries; the boot migrations
-              // (migrationsRun above) reset it to 0 per-transaction via SET LOCAL, so a long
-              // CREATE INDEX / backfill at boot is never aborted by it.
               statement_timeout: configService.get<number>('dataDatabase.statementTimeoutMs', 30000),
               idleTimeoutMillis: configService.get<number>('dataDatabase.idleTimeoutMs', 30000),
               connectionTimeoutMillis: configService.get<number>('dataDatabase.connectionTimeoutMs', 10000),
-              // Only set for a non-public schema (see above). `<schema>,public` keeps public on the
-              // path so pg_catalog + any public helpers still resolve; the configured schema wins.
               ...(useCustomSearchPath ? { options: `-c search_path=${schema},public` } : {}),
             },
           };
         }
 
-        // SQLite data DB: schema is MIGRATION-managed by default (DATABASE_SYNCHRONIZE unset/false),
-        // matching configuration.ts and .env.example ("Set false in production"). Set
-        // DATABASE_SYNCHRONIZE=true for zero-config synchronize instead. Computed once: the resolved
-        // value is always a boolean, so a get(..., true) fallback would never fire (and would be a trap).
+        // SQLite data DB
         const synchronize = configService.get<boolean>('dataDatabase.synchronize', false);
         return {
           ...baseConfig,

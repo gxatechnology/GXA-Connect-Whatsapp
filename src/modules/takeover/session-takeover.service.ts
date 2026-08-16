@@ -2,6 +2,7 @@ import { ConflictException, Injectable, OnApplicationBootstrap, OnModuleDestroy,
 import { ConfigService } from '@nestjs/config';
 import { createLogger } from '../../common/services/logger.service';
 import { resolveFeatureFlags } from '../../config/feature-flags';
+import { getRuntimeCapability } from '../../config/runtime-mode';
 import { Session, SessionStatus } from '../session/entities/session.entity';
 import { SessionOwnershipService } from '../session/session-ownership.service';
 import { SessionService } from '../session/session.service';
@@ -53,6 +54,10 @@ export class SessionTakeoverService implements OnApplicationBootstrap, OnModuleD
   ) {}
 
   onApplicationBootstrap(): void {
+    const runtimeCap = getRuntimeCapability();
+    if (runtimeCap.isServerless || !runtimeCap.canRunWhatsAppSockets) {
+      return;
+    }
     // The same flag that governs boot auto-start: a deployment that opted out of automatic engine
     // starts must not get spontaneous ones from the sweep either.
     if (!resolveFeatureFlags(this.configService).autoStartSessions) return;

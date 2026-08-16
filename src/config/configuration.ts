@@ -3,6 +3,8 @@ import { computeFeatureFlags } from './feature-flags';
 import { computeSendPacingConfig } from '../modules/message/send-pacing.config';
 import { resolveInflightBodyBudgetBytes } from './inflight-body-budget';
 import { readWsRateLimitConfig } from '../modules/events/ws-rate-limit';
+import { parsePostgresUrl, resolveDatabaseType } from '../database/database-url.util';
+import { resolveRuntimeMode } from './runtime-mode';
 
 /**
  * Root of the host's persistent state. Relative on purpose: the image sets WORKDIR /app and mounts
@@ -138,55 +140,63 @@ export default () => ({
     enabled: process.env.CACHE_ENABLED === 'true',
   },
 
-  // Main Database configuration (always SQLite for boot config)
-  database: {
-    type: 'sqlite' as const,
-    // SQLite file for the auth/audit DB. Overridable (e.g. e2e points it at a temp file) so tests
-    // never write api keys into the developer's ./data/main.sqlite.
-    database: process.env.MAIN_DATABASE_NAME || './data/main.sqlite',
-    // Schema management for the auth/audit DB. Default ON (zero-config first boot).
-    // Set MAIN_DATABASE_SYNCHRONIZE=false to manage schema via the main-owned migrations
-    // instead (migrationsRun then creates api_keys/audit_logs). When disabled, run the
-    // main-connection migrations explicitly with `npm run migration:run:main` (or
-    // `migration:run:main:prod` for the compiled image) — the plain `migration:run` only
-    // manages the data connection.
-    synchronize: process.env.MAIN_DATABASE_SYNCHRONIZE !== 'false',
-    logging: process.env.DATABASE_LOGGING === 'true',
-  },
+  // Runtime Mode
+  runtimeMode: resolveRuntimeMode(process.env),
+
+  // Main Database configuration (SQLite in local dev, PostgreSQL in production/when configured)
+  database: (() => {
+    const dbType = resolveDatabaseType(process.env);
+    const mainUrl = process.env.MAIN_DATABASE_URL || process.env.DATABASE_URL;
+    const parsedUrl = mainUrl ? parsePostgresUrl(mainUrl) : null;
+    return {
+      type: dbType,
+      url: mainUrl || undefined,
+      database:
+        process.env.MAIN_DATABASE_NAME ||
+        (dbType === 'postgres' ? parsedUrl?.database || process.env.DATABASE_NAME || 'openwa' : './data/main.sqlite'),
+      host: parsedUrl?.host || process.env.DATABASE_HOST || 'localhost',
+      port: parsedUrl?.port || parseInt(process.env.DATABASE_PORT || '5432', 10),
+      username: parsedUrl?.username || process.env.DATABASE_USERNAME,
+      password: parsedUrl?.password || process.env.DATABASE_PASSWORD,
+      schema: process.env.MAIN_POSTGRES_SCHEMA || process.env.POSTGRES_SCHEMA || 'public',
+      synchronize:
+        process.env.NODE_ENV !== 'production' &&
+        (dbType === 'postgres'
+          ? process.env.MAIN_DATABASE_SYNCHRONIZE === 'true'
+          : process.env.MAIN_DATABASE_SYNCHRONIZE !== 'false'),
+      logging: process.env.DATABASE_LOGGING === 'true',
+      ssl: process.env.DATABASE_SSL === 'true' || (parsedUrl?.ssl !== undefined ? !!parsedUrl.ssl : false),
+      sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+    };
+  })(),
 
   // Data Storage Database configuration (pluggable: SQLite, PostgreSQL, etc.)
-  dataDatabase: {
-    type: process.env.DATABASE_TYPE || 'sqlite',
-    // SQLite path (used when type is sqlite)
-    database: process.env.DATABASE_NAME || './data/openwa.sqlite',
-    // Postgres database NAME (used when type is postgres). Resolved from the same
-    // DATABASE_NAME env as the migration CLI (data-source.ts) so the runtime factory and
-    // migrations never target different databases. Distinct sqlite-vs-pg defaults.
-    name: process.env.DATABASE_NAME || 'openwa',
-    // PostgreSQL schema (used when type is postgres). Default 'public' preserves the historical
-    // behavior; set POSTGRES_SCHEMA to place OpenWA's tables + the TypeORM migration ledger in a
-    // dedicated schema (e.g. a managed-Postgres project schema, or to isolate OpenWA from other
-    // apps sharing the database). The schema must already exist — a missing one fails fast at
-    // migration time rather than silently falling back to public. SQLite ignores this.
-    schema: process.env.POSTGRES_SCHEMA || 'public',
-    // PostgreSQL/MySQL connection (used when type is postgres/mysql)
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-    username: process.env.DATABASE_USERNAME,
-    password: process.env.DATABASE_PASSWORD,
-    synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
-    logging: process.env.DATABASE_LOGGING === 'true',
-    // Connection pooling (PostgreSQL)
-    poolSize: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
-    // Pool/query timeouts (PostgreSQL). statement_timeout is server-side per query; idle/connection
-    // are pool-side. Set any to 0 to disable. Applied to the runtime connection only (see app.module).
-    statementTimeoutMs: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT_MS || '30000', 10),
-    idleTimeoutMs: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
-    connectionTimeoutMs: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT_MS || '10000', 10),
-    // SSL configuration
-    ssl: process.env.DATABASE_SSL === 'true',
-    sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
-  },
+  dataDatabase: (() => {
+    const dbType = resolveDatabaseType(process.env);
+    const dataUrl = process.env.DATA_DATABASE_URL || process.env.DATABASE_URL;
+    const parsedUrl = dataUrl ? parsePostgresUrl(dataUrl) : null;
+    return {
+      type: dbType,
+      url: dataUrl || undefined,
+      database:
+        process.env.DATABASE_NAME ||
+        (dbType === 'postgres' ? parsedUrl?.database || 'openwa' : './data/openwa.sqlite'),
+      name: parsedUrl?.database || process.env.DATABASE_NAME || 'openwa',
+      schema: process.env.POSTGRES_SCHEMA || 'public',
+      host: parsedUrl?.host || process.env.DATABASE_HOST || 'localhost',
+      port: parsedUrl?.port || parseInt(process.env.DATABASE_PORT || '5432', 10),
+      username: parsedUrl?.username || process.env.DATABASE_USERNAME,
+      password: parsedUrl?.password || process.env.DATABASE_PASSWORD,
+      synchronize: process.env.DATABASE_SYNCHRONIZE === 'true' && process.env.NODE_ENV !== 'production',
+      logging: process.env.DATABASE_LOGGING === 'true',
+      poolSize: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
+      statementTimeoutMs: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT_MS || '30000', 10),
+      idleTimeoutMs: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
+      connectionTimeoutMs: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT_MS || '10000', 10),
+      ssl: process.env.DATABASE_SSL === 'true' || (parsedUrl?.ssl !== undefined ? !!parsedUrl.ssl : false),
+      sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+    };
+  })(),
 
   // WhatsApp engine configuration
   engine: {

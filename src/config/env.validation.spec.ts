@@ -339,4 +339,47 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ MEDIA_CONVERSION_TIMEOUT_MS: 'abc' })).toThrow(/positive integer/);
     expect(() => validateEnv({ MEDIA_CONVERSION_MAX_OUTPUT_BYTES: '52428800' })).not.toThrow();
   });
+
+  describe('Production Environment Validation', () => {
+    const validProdSecret = 'super-strong-auth-session-secret-32-chars-long!';
+
+    it('rejects SQLite in production', () => {
+      expect(() => validateEnv({ NODE_ENV: 'production', DATABASE_TYPE: 'sqlite', AUTH_SESSION_SECRET: validProdSecret })).toThrow(/Production environment requires PostgreSQL/);
+      expect(() => validateEnv({ NODE_ENV: 'production', AUTH_SESSION_SECRET: validProdSecret })).toThrow(/Production environment requires PostgreSQL/);
+    });
+
+    it('accepts DATABASE_URL in production without discrete host/user/pass', () => {
+      expect(() =>
+        validateEnv({
+          NODE_ENV: 'production',
+          DATABASE_TYPE: 'postgres',
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/mydb',
+          AUTH_SESSION_SECRET: validProdSecret,
+        }),
+      ).not.toThrow();
+    });
+
+    it('rejects MAIN_DATABASE_SYNCHRONIZE=true in production', () => {
+      expect(() =>
+        validateEnv({
+          NODE_ENV: 'production',
+          DATABASE_TYPE: 'postgres',
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/mydb',
+          MAIN_DATABASE_SYNCHRONIZE: 'true',
+          AUTH_SESSION_SECRET: validProdSecret,
+        }),
+      ).toThrow(/MAIN_DATABASE_SYNCHRONIZE=true is not allowed in production/);
+    });
+
+    it('rejects missing or short AUTH_SESSION_SECRET in production', () => {
+      expect(() =>
+        validateEnv({
+          NODE_ENV: 'production',
+          DATABASE_TYPE: 'postgres',
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/mydb',
+          AUTH_SESSION_SECRET: 'short-secret',
+        }),
+      ).toThrow(/AUTH_SESSION_SECRET is required and must be at least 32 characters/);
+    });
+  });
 });

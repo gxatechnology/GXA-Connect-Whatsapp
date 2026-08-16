@@ -72,7 +72,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   private static readonly ADMIN_CAPABILITY_LOCK_KEY = 'admin-capability';
 
   private readonly tokenSecret: string =
-    process.env.SESSION_SECRET || process.env.API_KEY_PEPPER || 'gxa_session_secret_default_2026';
+    process.env.AUTH_SESSION_SECRET || process.env.SESSION_SECRET || process.env.API_KEY_PEPPER || 'gxa_session_secret_default_2026';
 
   constructor(
     @InjectRepository(ApiKey, 'main')

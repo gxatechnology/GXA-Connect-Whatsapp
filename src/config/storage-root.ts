@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import { isServerlessEnvironment } from './load-env';
 
 /** Storage root used when STORAGE_LOCAL_PATH is unset. Mirrors configuration.ts's `storage.localPath`. */
 export const DEFAULT_STORAGE_ROOT = './data/media';
@@ -26,6 +28,8 @@ export interface StorageRootOptions {
   /** Injectable for tests; defaults to the real filesystem probe. */
   isWritable?: (root: string) => boolean;
   logger?: StorageRootLogger;
+  /** Explicit serverless flag override; defaults to detecting serverless runtime */
+  isServerless?: boolean;
 }
 
 /**
@@ -48,22 +52,23 @@ export function isStorageRootWritable(root: string): boolean {
 /**
  * Resolve the effective storage root, failing fast when it is unusable.
  *
- * A writable root is returned untouched — including a writable `./uploads`, so a bare-metal install
- * that has been happily using it is never relocated out from under its existing media. Only an
- * unwritable fossil is migrated onto the default, which is the case that cannot be anything but
- * broken: in the official image `/app` is root-owned (v0.13.0 narrowed the build's chown from `/app`
- * to `./data`), so `./uploads` resolves outside the mounted data volume and cannot be created.
+ * In serverless environments (Vercel/AWS Lambda), `/var/task` is read-only. When the configured
+ * path is not writable, temporary storage safely resolves under `os.tmpdir()` (typically `/tmp/media`).
  *
- * Any other unwritable root throws — a misconfiguration the operator must see and fix, not something
- * to paper over with a silent fallback. That is how this class of bug stayed invisible for so long:
- * before v0.13.0 the same fossil silently succeeded into the container's ephemeral layer, and every
- * status/chat media file written there was discarded on the next container recreate.
+ * In standalone environments, an unwritable fossil is migrated onto `./data/media`, and any other
+ * unwritable root throws fast.
  */
 export function resolveStorageRoot(options: StorageRootOptions): string {
+  const isServerless = options.isServerless ?? isServerlessEnvironment(process.env);
   const isWritable = options.isWritable ?? isStorageRootWritable;
-  const configured = options.configured?.trim() || DEFAULT_STORAGE_ROOT;
+  const configured = options.configured?.trim() || (isServerless ? path.join(os.tmpdir(), 'media') : DEFAULT_STORAGE_ROOT);
 
   if (isWritable(configured)) return configured;
+
+  if (isServerless) {
+    const tmpRoot = path.join(os.tmpdir(), 'media');
+    if (isWritable(tmpRoot)) return tmpRoot;
+  }
 
   if (FOSSIL_STORAGE_ROOTS.has(configured) && isWritable(DEFAULT_STORAGE_ROOT)) {
     options.logger?.warn(
@@ -84,3 +89,4 @@ export function resolveStorageRoot(options: StorageRootOptions): string {
       `mounted data volume — e.g. ${DEFAULT_STORAGE_ROOT}).`,
   );
 }
+
